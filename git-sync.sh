@@ -105,7 +105,7 @@ section_header() {
 draw_banner() {
     clear_screen
     print_blank
-    echo -e "${BOLD}${GREEN}"
+    echo -e "${BOLD}${MAGENTA}"
     echo "    ██████  ██ ████████      ███████ ██    ██ ███    ██  ██████ "
     echo "   ██       ██    ██         ██       ██  ██  ████   ██ ██      "
     echo "   ██   ███ ██    ██    ████ ███████   ████   ██ ██  ██ ██      "
@@ -151,14 +151,14 @@ read_key() {
 # ─────────────────────────────────────────────
 # get commit message from user
 function get_commit_message(){
-    print_blank
-    echo -e "  ${BOLD}${CYAN}Commit Message${RESET}"
-    echo -e "  ${MUTED}Leave blank for default → \"Automatic sync commit\"${RESET}"
-    print_blank
-    printf "  ${ACCENT}❯${RESET}  "
+    print_blank >/dev/tty
+    echo -e "  ${BOLD}${CYAN}Commit Message${RESET}" >/dev/tty
+    echo -e "  ${MUTED}Leave blank for default → \"Automatic sync commit\"${RESET}" >/dev/tty
+    print_blank >/dev/tty
+    printf "  ${ACCENT}❯${RESET}  " >/dev/tty
     show_cursor
     # ask user for commit message
-    read -r msg
+    read -r msg </dev/tty
     echo "${msg:-Automatic sync commit}"
 }
 
