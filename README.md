@@ -517,6 +517,8 @@ Every possible terminal state in Git-Sync surfaces a styled callback block. The 
 ### Step 1 — Make Executable & Move to Bin
 
 ```bash
+curl -sSL https://raw.githubusercontent.com/NikanEidi/git-sync-cli/main/install.sh | bash
+   # or
 chmod +x git-sync.sh
 sudo cp git-sync.sh /usr/local/bin/git-sync
 ```
