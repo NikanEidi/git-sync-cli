@@ -63,8 +63,11 @@ function initializer_helper(){
 
     # Collect only regular files
     local real_files=()
-    for f in *; do
-        [ -f "$f" ] && real_files+=("$f")
+    # Improved loop to include hidden files like .gitignore but skip .git folder
+    for f in .[!.]* *; do
+        if [ -e "$f" ] && [ "$f" != ".git" ]; then
+            real_files+=("$f")
+        fi
     done
 
     local f_counter=${#real_files[@]}  # count files
@@ -79,7 +82,7 @@ function initializer_helper(){
         echo "Multiple files found. Showing tree structure:"
         # Show the current directory structure as a tree before adding
         if command -v tree >/dev/null 2>&1; then
-            tree -L 1
+            tree -L 1 -a
         else
             echo "--- Current Directory Files ---"
             printf '%s\n' "${real_files[@]}"
