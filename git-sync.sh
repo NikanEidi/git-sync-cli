@@ -149,6 +149,8 @@ read_key() {
         echo "1"
     elif [[ "$key" == "2" ]]; then
         echo "2"
+    elif [[ "$key" == "3" ]]; then
+        echo "3"
     else
         echo "OTHER:${key}"
     fi
@@ -298,18 +300,70 @@ function initializer_helper(){
 }
 
 # ─────────────────────────────────────────────
+#  PUSH TO REMOTE HELPER
+# ─────────────────────────────────────────────
+# push current branch to configured remote origin
+function push_helper(){
+    section_header "  Push to Remote  "
+
+    # abort if no git repository exists in the current directory
+    if [ ! -d ".git" ]; then
+        print_warn "No git repository found."
+        return
+    fi
+
+    # abort if no remote is configured
+    local remote_check
+    remote_check=$(git remote 2>/dev/null)
+    if [[ -z "$remote_check" ]]; then
+        print_warn "No remote origin found. Please add a remote first."
+        return
+    fi
+
+    # resolve the active branch name at call time
+    local current_branch
+    current_branch=$(git branch --show-current 2>/dev/null)
+
+    print_blank
+    print_info "Remote: $(git remote get-url origin 2>/dev/null)"
+    print_step "Branch: ${current_branch}"
+    print_blank
+    hr "·"
+    print_blank
+
+    # animate while the push runs in the foreground
+    start_spinner "Pushing to origin... (Branch: ${current_branch})"
+    git push origin "${current_branch}" > /dev/null 2>&1
+    local exit_status=$?  # capture push exit code before any other command runs
+    stop_spinner
+
+    # report outcome based on the captured exit code
+    if [[ "$exit_status" -eq 0 ]]; then
+        print_success "Successfully pushed to GitHub/Remote."
+    else
+        print_error "Push failed. Check your network or resolve conflicts."
+    fi
+
+    print_blank
+    hr
+    print_blank
+}
+
+# ─────────────────────────────────────────────
 #  MENU
 # ─────────────────────────────────────────────
 draw_menu() {
     draw_banner
     echo -e "  ${BOLD}${WHITE}Select an action${RESET}"
     print_blank
-    echo -e "  \033[48;5;54m\033[38;5;171m${BOLD}  ↵  Run Git-Sync                              ${RESET}   ${MUTED}Enter${RESET}"
+    echo -e "  \033[48;5;54m\033[38;5;171m${BOLD}  ↵  Run Git-Sync                              ${RESET}   ${MUTED}Enter / 1${RESET}"
+    print_blank
+    echo -e "  \033[48;5;17m\033[38;5;51m${BOLD}  3  Push to Remote                            ${RESET}   ${MUTED}3${RESET}"
     print_blank
     echo -e "  ${DIM}     Exit                                    ${RESET}   ${MUTED}Esc / Q${RESET}"
     print_blank
     hr "─" "$MUTED"
-    echo -e "  ${MUTED}  ↵ run  ·  Esc/Q quit${RESET}"
+    echo -e "  ${MUTED}  1: Sync  ·  3: Push  ·  Esc/Q: Quit${RESET}"
     print_blank
 }
 
@@ -326,6 +380,13 @@ function menu(){
             ENTER|1)
                 # run the git helper or Enter
                 initializer_helper
+                print_blank
+                echo -e "  ${MUTED}Press any key to return to menu...${RESET}"
+                read_key > /dev/null
+                ;;
+            3)
+                # push staged commits to the configured remote origin
+                push_helper
                 print_blank
                 echo -e "  ${MUTED}Press any key to return to menu...${RESET}"
                 read_key > /dev/null
