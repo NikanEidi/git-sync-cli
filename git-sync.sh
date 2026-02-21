@@ -145,21 +145,25 @@ draw_banner() {
 read_key() {
     local key
     IFS= read -rsn1 key 2>/dev/null
-    # if ESC byte, check for escape sequence vs bare ESC
+    # if ESC byte, read next bytes one at a time — fractional -t is not supported
+    # on macOS bash 3.2, so reading byte by byte with integer timeout is required
     if [[ "$key" == $'\x1b' ]]; then
-        local seq
-        IFS= read -rsn2 -t 0.05 seq 2>/dev/null
-        if [[ -z "$seq" ]]; then
-            # no follow-up bytes — user pressed bare ESC key
+        local b1
+        IFS= read -rsn1 -t 1 b1 2>/dev/null
+        if [[ -z "$b1" ]]; then
+            # nothing followed the ESC byte — user pressed the bare ESC key
             echo "ESC"
-        elif [[ "$seq" == "[A" ]]; then
-            # ANSI sequence for arrow up key
-            echo "UP"
-        elif [[ "$seq" == "[B" ]]; then
-            # ANSI sequence for arrow down key
-            echo "DOWN"
+        elif [[ "$b1" == "[" ]]; then
+            local b2
+            IFS= read -rsn1 -t 1 b2 2>/dev/null
+            # second byte identifies which arrow key was pressed
+            case "$b2" in
+                A) echo "UP" ;;    # ANSI sequence for arrow up key
+                B) echo "DOWN" ;;  # ANSI sequence for arrow down key
+                *) echo "SEQ:[${b2}" ;;
+            esac
         else
-            echo "SEQ:${seq}"
+            echo "SEQ:${b1}"
         fi
     elif [[ "$key" == "" ]]; then
         echo "ENTER"
@@ -356,7 +360,7 @@ function initializer_helper(){
 # ─────────────────────────────────────────────
 # push current branch to configured remote origin
 function push_helper(){
-    section_header "  Push to Remote  "
+    section_header "Push to Remote"
 
     # abort if no git repository exists in the current directory
     if [ ! -d ".git" ]; then
@@ -400,7 +404,7 @@ function push_helper(){
     if echo "$upstream_check" | grep -q "ahead"; then
         # local has commits the remote does not — safe to push
         local ahead_count
-        ahead_count=$(echo "$upstream_check" | grep -oP 'ahead \K[0-9]+')
+        ahead_count=$(echo "$upstream_check" | sed 's/.*ahead \([0-9]*\).*/\1/')
         print_info "Remote: $(git remote get-url origin 2>/dev/null)"
         print_step "Branch: ${current_branch}"
         print_step "${ahead_count} commit(s) ready to push."
@@ -462,13 +466,10 @@ draw_menu() {
         if [[ "$i" -eq "$selected" ]]; then
             # active row — render with full highlight and selection arrow
             if [[ "$i" -eq 0 ]]; then
-                # Run Git-Sync row — purple highlight
                 echo -e "  \033[48;5;54m\033[38;5;171m${BOLD}  ❯  ${MENU_ITEMS[$i]}$(printf '%*s' 33 '')${RESET}   ${MUTED}1 or Enter${RESET}"
             elif [[ "$i" -eq 1 ]]; then
-                # Push to Remote row — cyan highlight
                 echo -e "  \033[48;5;17m\033[38;5;51m${BOLD}  ❯  ${MENU_ITEMS[$i]}$(printf '%*s' 35 '')${RESET}   ${MUTED}3${RESET}"
             else
-                # Exit row — dim red highlight
                 echo -e "  \033[48;5;52m\033[38;5;196m${BOLD}  ❯  ${MENU_ITEMS[$i]}$(printf '%*s' 39 '')${RESET}   ${MUTED}Esc / Q${RESET}"
             fi
         else
@@ -489,9 +490,6 @@ draw_menu() {
     print_blank
 }
 
-# ─────────────────────────────────────────────
-#  MENU  (main entry of Program)
-# ─────────────────────────────────────────────
 # main entry of Program
 function menu(){
     local selected=0  # start with the first item focused
@@ -515,25 +513,28 @@ function menu(){
             ENTER)
                 # confirm the currently focused item
                 case "$selected" in
-                    0) # run the git helper or Enter
-                       initializer_helper
-                       print_blank
-                       echo -e "  ${MUTED}Press any key to return to menu...${RESET}"
-                       read_key > /dev/null
-                       ;;
-                    1) # push staged commits to the configured remote origin
-                       push_helper
-                       print_blank
-                       echo -e "  ${MUTED}Press any key to return to menu...${RESET}"
-                       read_key > /dev/null
-                       ;;
-                    2) # exit loop with ESC or q
-                       clear_screen
-                       draw_banner
-                       echo -e "  ${ACCENT}✔${RESET}  ${MUTED}Session ended. Goodbye.${RESET}"
-                       print_blank
-                       return
-                       ;;
+                    0)
+                        # run the git helper or Enter
+                        initializer_helper
+                        print_blank
+                        echo -e "  ${MUTED}Press any key to return to menu...${RESET}"
+                        read_key > /dev/null
+                        ;;
+                    1)
+                        # push staged commits to the configured remote origin
+                        push_helper
+                        print_blank
+                        echo -e "  ${MUTED}Press any key to return to menu...${RESET}"
+                        read_key > /dev/null
+                        ;;
+                    2)
+                        # exit loop with Enter on the Exit row
+                        clear_screen
+                        draw_banner
+                        echo -e "  ${ACCENT}✔${RESET}  ${MUTED}Session ended. Goodbye.${RESET}"
+                        print_blank
+                        return
+                        ;;
                 esac
                 ;;
             1)
