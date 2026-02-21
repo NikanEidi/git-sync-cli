@@ -17,7 +17,7 @@ MAGENTA="\033[38;5;171m"
 WHITE="\033[97m"
 
 BG_DARK="\033[48;5;232m"
-BG_PANEL="\033[48;5;234m"
+BG_PANEL="\033[48;5;17m"
 BG_HIGHLIGHT="\033[48;5;22m"
 
 ACCENT="${BOLD}${GREEN}"
@@ -90,12 +90,20 @@ hr() {
 # Boxed section header
 section_header() {
     local title="$1"
-    local len=${#title}
-    local pad=$(( (40 - len) / 2 ))
+    local box_inner=44
+    local title_len=${#title}
+    local total_pad=$(( box_inner - title_len ))
+    local pad_left=$(( total_pad / 2 ))
+    local pad_right=$(( total_pad - pad_left ))
+    local left_spaces right_spaces
+    left_spaces=$(printf '%*s' "$pad_left" '')
+    right_spaces=$(printf '%*s' "$pad_right" '')
+    local top_border="┌$(printf '─%.0s' $(seq 1 $box_inner))┐"
+    local bot_border="└$(printf '─%.0s' $(seq 1 $box_inner))┘"
     print_blank
-    echo -e "  ${DIM}${CYAN}┌──────────────────────────────────────┐${RESET}"
-    printf "  ${DIM}${CYAN}│${RESET}%${pad}s${BOLD}${CYAN}%s${RESET}%${pad}s  ${DIM}${CYAN}│${RESET}\n" "" "$title" ""
-    echo -e "  ${DIM}${CYAN}└──────────────────────────────────────┘${RESET}"
+    echo -e "  \033[38;5;171m${DIM}${top_border}${RESET}"
+    echo -e "  \033[38;5;171m${DIM}│${RESET}${left_spaces}${BOLD}\033[38;5;171m${title}${RESET}${right_spaces}  \033[38;5;171m${DIM}│${RESET}"
+    echo -e "  \033[38;5;171m${DIM}${bot_border}${RESET}"
     print_blank
 }
 
@@ -105,16 +113,16 @@ section_header() {
 draw_banner() {
     clear_screen
     print_blank
-    echo -e "${BOLD}${MAGENTA}"
-    echo "    ██████  ██ ████████      ███████ ██    ██ ███    ██  ██████ "
-    echo "   ██       ██    ██         ██       ██  ██  ████   ██ ██      "
-    echo "   ██   ███ ██    ██    ████ ███████   ████   ██ ██  ██ ██      "
-    echo "   ██    ██ ██    ██              ██    ██    ██  ██ ██ ██      "
-    echo "    ██████  ██    ██         ███████    ██    ██   ████  ██████ "
+    echo -e "\033[38;5;171m${BOLD}"
+    echo "   ██████  ██ ████████     ███████ ██    ██ ███    ██  ██████ "
+    echo "  ██       ██    ██        ██       ██  ██  ████   ██ ██      "
+    echo "  ██   ███ ██    ██  ████  ███████   ████   ██ ██  ██ ██      "
+    echo "  ██    ██ ██    ██        ╚════██    ██    ██  ██ ██ ██      "
+    echo "   ██████  ██    ██        ███████    ██    ██   ████  ██████ "
     echo -e "${RESET}"
-    echo -e "  ${MUTED}─────────────────────────────────────────────────────────────${RESET}"
-    echo -e "  ${DIM}${WHITE}  Seamless Git Automation  ${RESET}${DIM}·${RESET}${DIM}${CYAN}  v2.0  ${RESET}"
-    echo -e "  ${MUTED}─────────────────────────────────────────────────────────────${RESET}"
+    echo -e "  ${MUTED}──────────────────────────────────────────────────────────────${RESET}"
+    echo -e "  ${DIM}${WHITE}   Seamless Git Automation${RESET}   ${DIM}·${RESET}   ${DIM}\033[38;5;171mv2.0${RESET}"
+    echo -e "  ${MUTED}──────────────────────────────────────────────────────────────${RESET}"
     print_blank
 }
 
@@ -152,10 +160,10 @@ read_key() {
 # get commit message from user
 function get_commit_message(){
     print_blank >/dev/tty
-    echo -e "  ${BOLD}${CYAN}Commit Message${RESET}" >/dev/tty
+    echo -e "  ${BOLD}\033[38;5;171mCommit Message${RESET}" >/dev/tty
     echo -e "  ${MUTED}Leave blank for default → \"Automatic sync commit\"${RESET}" >/dev/tty
     print_blank >/dev/tty
-    printf "  ${ACCENT}❯${RESET}  " >/dev/tty
+    printf "  ${BOLD}\033[38;5;171m❯${RESET}  " >/dev/tty
     show_cursor
     # ask user for commit message
     read -r msg </dev/tty
@@ -252,13 +260,14 @@ function initializer_helper(){
         print_blank
         # Show the current directory structure as a tree before adding
         if command -v tree >/dev/null 2>&1; then
-            tree -L 1 -a --noreport 2>/dev/null | tail -n +2 | while IFS= read -r line; do
-                echo -e "     ${DIM}${CYAN}${line}${RESET}"
+            # Ignore .git folder in tree output to match actual staging count
+            tree -L 1 -a -I '.git' --noreport 2>/dev/null | tail -n +2 | while IFS= read -r line; do
+                echo -e "     ${DIM}\033[38;5;171m${line}${RESET}"
             done
         else
             echo "     --- Current Directory Files ---"
             printf '%s\n' "${real_files[@]}" | while IFS= read -r f; do
-                echo -e "     ${DIM}${CYAN}▸  ${WHITE}${f}${RESET}"
+                echo -e "     ${DIM}\033[38;5;171m▸  ${WHITE}${f}${RESET}"
             done
         fi
         print_blank
@@ -295,19 +304,19 @@ draw_menu() {
     draw_banner
     echo -e "  ${BOLD}${WHITE}Select an action${RESET}"
     print_blank
-    echo -e "  ${BG_PANEL}${BOLD}${GREEN}  ↵  Run Git-Sync   ${RESET}   ${MUTED}press Enter${RESET}"
+    echo -e "  \033[48;5;54m\033[38;5;171m${BOLD}  ↵  Run Git-Sync                              ${RESET}   ${MUTED}Enter${RESET}"
     print_blank
-    echo -e "  ${DIM}     Exit           ${RESET}   ${MUTED}press Esc or Q${RESET}"
+    echo -e "  ${DIM}     Exit                                    ${RESET}   ${MUTED}Esc / Q${RESET}"
     print_blank
     hr "─" "$MUTED"
-    echo -e "  ${MUTED}  ↑↓ navigate  ·  ↵ confirm  ·  Esc/Q quit${RESET}"
+    echo -e "  ${MUTED}  ↵ run  ·  Esc/Q quit${RESET}"
     print_blank
 }
 
 # main entry of Program
 function menu(){
-    hide_cursor
     while true; do
+        hide_cursor  # Ensure cursor remains hidden when menu redraws
         draw_menu
         # read a single keypress (no Enter needed)
         local choice
