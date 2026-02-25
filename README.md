@@ -44,43 +44,35 @@ flowchart TD
     A([Start: menu]) --> B[draw_menu with selected=0]
     B --> C[read_key: wait for keypress]
     C --> D{Key pressed?}
-
     D -- "↑ UP" --> E[selected = selected - 1 mod 3]
     D -- "↓ DOWN" --> F[selected = selected + 1 mod 3]
     E --> B
     F --> B
-
     D -- "ENTER on row 0 / key 1" --> G[initializer_helper]
     D -- "ENTER on row 1 / key 3" --> H[push_helper]
-    D -- "ENTER on row 2 / ESC / Q" --> I[draw_banner\nGoodbye message]
+    D -- "ENTER on row 2 / ESC / Q" --> I[draw_banner<br/>Goodbye message]
     I --> J([Exit])
     D -- "Other" --> B
-
     G --> K{.git exists?}
-    K -- Yes --> L[print: already initialized\nchecker = -1]
-    K -- No --> M[git init\nchecker = 0]
+    K -- Yes --> L[print: already initialized<br/>checker = -1]
+    K -- No --> M[git init<br/>checker = 0]
     M --> N[gitignore_creator_helper]
     N --> O{.gitignore exists?}
     O -- No --> P[Write .gitignore]
     O -- Yes --> Q[Skip: warn user]
-
-    L --> R[Glob: .[!.]* *\nexclude .git]
+    L --> R[Glob: dot-files and dirs<br/>exclude .git]
     P --> R
     Q --> R
-
     R --> S{f_counter?}
     S -- "= 0" --> T[callback: No files found]
     S -- "= 1" --> U[git add single file]
-    S -- "> 1" --> V[Show tree / list\ngit add .]
-
+    S -- "&gt; 1" --> V[Show tree / list<br/>git add .]
     T --> W([return])
     U --> X[git diff --cached check]
     V --> X
-
     X --> Y{Staged changes?}
     Y -- No --> Z[callback: Nothing to commit]
     Z --> W
-
     Y -- Yes --> AA[Show staged file list]
     AA --> AB[get_commit_message]
     AB --> AC[git commit -m result]
@@ -90,19 +82,15 @@ flowchart TD
     AE --> AG[Press any key → menu]
     AF --> AG
     AG --> B
-
     H --> AH{.git exists?}
     AH -- No --> AI[callback: No repo found]
     AI --> AG
-
     AH -- Yes --> AJ{Remote configured?}
     AJ -- No --> AK[callback: No remote]
     AK --> AG
-
     AJ -- Yes --> AL{HEAD commit exists?}
     AL -- No --> AM[callback: No commits yet]
     AM --> AG
-
     AL -- Yes --> AN{Branch ahead/behind?}
     AN -- "behind" --> AO[callback: Pull first]
     AO --> AG
